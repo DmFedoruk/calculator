@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_calculator_app/colors/my_colors.dart';
 import 'package:flutter_calculator_app/widgets/circle_button.dart';
@@ -14,7 +16,12 @@ class CalculateScreen extends StatefulWidget {
 
 class _CalculateScreenState extends State<CalculateScreen> {
   final MyColors colors = MyColors();
-  double number = 0;
+  dynamic number;
+  dynamic secondNumber;
+  String operation = "";
+  bool isDouble = false;
+  bool nextOperation = true;
+  int countAfterComma = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,9 +36,9 @@ class _CalculateScreenState extends State<CalculateScreen> {
                 margin: EdgeInsets.only(left: 20.w, right: 20.w, bottom: 57.h),
                 alignment: Alignment.centerRight,
                 child: Text(
-                  "$number",
+                  number != 0 && number != null ? "$number" : "",
                   style: TextStyle(
-                      fontSize: 55.sp,
+                      fontSize: (number.toString().length) < 9 ? 55.sp : 40.sp,
                       color: colors.white,
                       fontFamily: "Inter",
                       fontWeight: FontWeight.w500),
@@ -53,13 +60,13 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       text: "+/-"),
                   SizedBox(width: 17.w),
                   CircleButton(
-                      function: () {},
+                      function: () => deleteOneNumber(),
                       color: colors.additionalOperationColor,
                       textColor: colors.additionalOperationTextColor,
-                      text: "%"),
+                      text: "C"),
                   SizedBox(width: 17.w),
                   CircleButton(
-                      function: () {},
+                      function: () => executeOperation("/"),
                       color: colors.operationColor,
                       textColor: colors.operationTextColor,
                       fontSize: 45,
@@ -92,7 +99,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       text: "9"),
                   SizedBox(width: 17.w),
                   CircleButton(
-                      function: () {},
+                      function: () => executeOperation("*"),
                       color: colors.operationColor,
                       textColor: colors.operationTextColor,
                       fontSize: 35,
@@ -125,7 +132,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       text: "6"),
                   SizedBox(width: 17.w),
                   CircleButton(
-                      function: () {},
+                      function: () => executeOperation("-"),
                       color: colors.operationColor,
                       textColor: colors.operationTextColor,
                       fontSize: 55,
@@ -158,7 +165,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       text: "3"),
                   SizedBox(width: 17.w),
                   CircleButton(
-                      function: () {},
+                      function: () => executeOperation("+"),
                       color: colors.operationColor,
                       textColor: colors.operationTextColor,
                       fontSize: 40,
@@ -172,20 +179,21 @@ class _CalculateScreenState extends State<CalculateScreen> {
                 child: Row(
                   children: [
                     CircleButton(
-                        function: () {},
+                        function: () => addNumber(0),
                         color: colors.buttonColor,
                         textColor: colors.white,
                         fontSize: 30,
                         text: "0"),
                     SizedBox(width: 16.w),
                     CircleButton(
-                        function: () {},
+                        function: () => isDouble = true,
                         color: colors.buttonColor,
                         textColor: colors.white,
                         fontSize: 30,
                         text: "."),
                     SizedBox(width: 11.w),
                     LargeButton(
+                        function: () => calculate(),
                         color: colors.operationColor,
                         textColor: colors.operationTextColor,
                         text: "=")
@@ -199,6 +207,25 @@ class _CalculateScreenState extends State<CalculateScreen> {
 
   void deleteAll() {
     number = 0;
+    isDouble = false;
+    operation = "";
+    secondNumber = null;
+    countAfterComma = 0;
+    setState(() {});
+  }
+
+  void deleteOneNumber() {
+    if (countAfterComma > 0) {
+      countAfterComma--;
+      number = ((number * pow(10, countAfterComma)).truncate()) /
+          pow(10, countAfterComma);
+      if (countAfterComma == 0) {
+        isDouble = false;
+        number = number.round();
+      }
+    } else {
+      number = (number / 10).truncate();
+    }
     setState(() {});
   }
 
@@ -209,16 +236,55 @@ class _CalculateScreenState extends State<CalculateScreen> {
     }
   }
 
-  void addNumber(double value) {
-    if (number != 0) {
-      double fraction = number - number.truncate();
-      if (fraction != 0) {
+  void addNumber(int value) {
+    if (number.toString().length < 12) {
+      if (isDouble) {
+        countAfterComma++;
+        if (number == 0) {
+          number = value / 10;
+        } else {
+          number = ((number + (value / pow(10, countAfterComma))) *
+                      pow(10, countAfterComma))
+                  .truncate() /
+              pow(10, countAfterComma);
+        }
       } else {
         number = number * 10 + value;
       }
-    } else {
-      number = value;
+
+      setState(() {});
     }
+  }
+
+  void executeOperation(String operation) {
+    secondNumber = number;
+    number = 0;
+    isDouble = false;
+    countAfterComma = 0;
+    nextOperation = true;
+    this.operation = operation;
+    setState(() {});
+  }
+
+  void calculate() {
+    if (secondNumber != null && number != null) {
+      switch (operation) {
+        case "+":
+          number = secondNumber + number;
+          break;
+        case "-":
+          number = secondNumber - number;
+          break;
+        case "*":
+          number = secondNumber * number;
+          break;
+        case "/":
+          number = secondNumber / number;
+          break;
+      }
+    }
+    nextOperation = false;
+    secondNumber = null;
     setState(() {});
   }
 }
